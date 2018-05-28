@@ -1,0 +1,96 @@
+pseudo_DR=function(A,e)
+{
+  n=length(e);
+  K=max(e);
+  T=10
+  for (t in 1:T)
+  {
+    
+    Pi=rep(0,K);
+    for (k in 1:K)
+      Pi[k]=sum(e==k)/n;
+    
+    lambda=matrix(0,K,K);   
+    
+    P=matrix(0,K,K);
+    for (l in 1:(K))
+      for (k in 1:(K))
+      {    
+        ind1=which(e==l)
+        ind2=which(e==k)
+        if (l!=k)
+        {P[l,k]=sum(A[ind1,ind2])/(length(ind1)*length(ind2));}
+        if (l==k)       
+        {P[l,k]=sum(A[ind1,ind1])/(length(ind1)*(length(ind1)-1)); }
+      }
+    for (l in 1:(K))  
+      for (k in 1:(K))
+      {
+        lambda[l,k]=sum(e==k)*P[l,k]
+      }
+    
+    theta=matrix(0,K,K); 
+    for (l in 1:(K))  
+      for (k in 1:(K))
+      {
+        theta[l,k]=lambda[l,k]/(sum(lambda[l,]))
+      }
+    
+    
+    b=matrix(0,n,K);
+    for (i in 1:n)
+      for (k in 1:(K))
+        b[i,k]=sum(A[i,e==k]);
+    
+    deg=apply(b,1,sum);
+    
+    diff=1;
+    
+    while (diff>1e-5)
+    {
+      z=matrix(0,n,K);
+      for (i in 1:n)
+      {
+        
+        for (l in 1:K)
+        {
+          z[i,l]=Pi[l]
+          for (k in 1:(K))
+            z[i,l]=z[i,l]*theta[l,k]^b[i,k];
+          
+        }
+        
+        z[i,]=z[i,]/sum(z[i,]);   
+        
+      }
+      thetaNew=matrix(0,K,K);
+      for (l in 1:(K))
+        for (k in 1:(K))
+        {
+          thetaNew[l,k]=sum(b[,k]*z[,l])/sum(deg*z[,l]);
+          
+        }
+      
+      PiNew=apply(z,2,sum);
+      PiNew=PiNew[1:K]/sum(PiNew[1:K]);
+      diff=max(max(abs(Pi-PiNew)),max(abs(theta-thetaNew)))
+      #cat("diff=",diff,"\n");
+      
+      if (is.finite(diff)==F)
+        return(list(error=1));
+      if (abs(diff)>30)  
+        return(list(error=1));
+      
+      
+      Pi=PiNew;
+      theta=thetaNew;
+      
+    }
+    e=apply(z,1,which.max);
+    #cat(e,"\n")
+    
+    
+  }
+  
+  return(list(error=0,e=e, Pi=Pi,theta=theta,b=b,z=z));
+}
